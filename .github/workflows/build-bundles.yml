@@ -93,12 +93,12 @@ jobs:
           aws s3 cp zips/penpot-all-bundles.zip s3://${{ secrets.S3_BUCKET }}/penpot-all-bundles-${{ steps.vars.outputs.gh_branch}}.zip
           aws s3 cp zips/penpot-all-bundles.zip s3://${{ secrets.S3_BUCKET }}/penpot-all-bundles-${{ steps.vars.outputs.commit_hash }}.zip
 
-      - name: Upload unified 'individual' bundle to S3
+      - name: Upload 'individual' bundles to S3
         if: ${{ github.event.inputs.zip_mode == 'individual' }}
         run: |
             for name in penpot-frontend penpot-backend penpot-exporter; do
-              aws s3 cp zips/penpot-all-bundles.zip s3://${{ secrets.S3_BUCKET }}/penpot-${name}-${{ steps.vars.outputs.gh_branch }}-latest.zip
-              aws s3 cp zips/penpot-all-bundles.zip s3://${{ secrets.S3_BUCKET }}/penpot-${name}-${{ steps.vars.outputs.commit_hash }}.zip
+              aws s3 cp zips/penpot-${name}.zip s3://${{ secrets.S3_BUCKET }}/penpot-${name}-${{ steps.vars.outputs.gh_branch }}-latest.zip
+              aws s3 cp zips/penpot-${name}.zip s3://${{ secrets.S3_BUCKET }}/penpot-${name}-${{ steps.vars.outputs.commit_hash }}.zip
             done
 
       - name: Prepare urls.txt file
