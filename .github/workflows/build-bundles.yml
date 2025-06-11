@@ -27,6 +27,9 @@ jobs:
     if: github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch'
     name: Build and Upload Penpot Bundles
     runs-on: ubuntu-24.04
+    env:
+      COMMIT_HASH: $(git rev-parse --short HEAD)
+      GH_BRANCH: ${{ github.base_ref || github.ref_name }}
 
     steps:
       - name: Checkout repository
@@ -34,11 +37,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Extract somer useful variables
-        id: vars
-        run: |
-          echo "commit_hash=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-          echo "gh_branch=${{ github.base_ref || github.ref_name }}" >> $GITHUB_OUTPUT
+      # - name: Extract somer useful variables
+      #   id: vars
+      #   run: |
+      #     echo "commit_hash=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+      #     echo "gh_branch=${{ github.base_ref || github.ref_name }}" >> $GITHUB_OUTPUT
 
       # Set up Docker Buildx for multi-arch build
       - name: Set up Docker Buildx
@@ -50,23 +53,36 @@ jobs:
       - name: Create zip bundles for zip_mode == 'all'
         if: ${{ github.event.inputs.zip_mode == 'all' }}
         run: |
-          echo "📦 Packaging Penpot bundles..."
+          echo "📦 Packaging Penpot 'all' bundles..."
+          mkdir zips
           zip -r zips/penpot-all-bundles.zip bundles
+          # mkdir -p zips temp
+          # mkdir -p temp/penpot-all/{penpot-frontend,penpot-backend,penpot-exporter}
+          # cp -r bundles/frontend/* temp/penpot-all/penpot-frontend/
+          # cp -r bundles/backend/* temp/penpot-all/penpot-backend/
+          # cp -r bundles/exporter/* temp/penpot-all/penpot-exporter/
+          # cd temp
+          # zip -r ../zips/penpot-all-bundles.zip penpot-all
 
       - name: Create zip bundles for zip_mode == 'individual'
         if: ${{ github.event.inputs.zip_mode == 'individual' }}
         run: |
-          echo "📦 Packaging Penpot bundles..."
-          mkdir -p zips temp
-          for component in frontend backend exporter; do
-            name="penpot-${component}"
-            mkdir -p temp/${name}
-            cp -r bundles/${component}/* temp/${name}/
-          done
-          cd temp
-          for name in penpot-frontend penpot-backend penpot-exporter; do
-            zip -r ../zips/${name}.zip ${name}
-          done
+          echo "📦 Packaging Penpot 'individual' bundles..."
+          mkdir zips
+          zip -r zips/penpot-frontend.zip bundles/frontend
+          zip -r zips/penpot-backend.zip bundles/backend
+          zip -r zips/penpot-exporter.zip bundles/exporter
+
+          # mkdir -p zips temp
+          # for component in frontend backend exporter; do
+          #   name="penpot-${component}"
+          #   mkdir -p temp/${name}
+          #   cp -r bundles/${component}/* temp/${name}/
+          # done
+          # cd temp
+          # for name in penpot-frontend penpot-backend penpot-exporter; do
+          #   zip -r ../zips/${name}.zip ${name}
+          # done
 
       - name: Upload unified 'all' bundle
         if: ${{ github.event.inputs.zip_mode == 'all' }}
@@ -92,8 +108,8 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
         run: |
-          aws s3 cp zips/penpot-all-bundles.zip s3://${{ secrets.S3_BUCKET }}/penpot-all-bundles-${{ steps.vars.outputs.gh_branch }}-latest.zip
-          aws s3 cp zips/penpot-all-bundles.zip s3://${{ secrets.S3_BUCKET }}/penpot-all-bundles-${{ steps.vars.outputs.commit_hash }}.zip
+          aws s3 cp zips/penpot-all-bundles.zip s3://${{ secrets.S3_BUCKET }}/penpot-all-bundles-$GH_BRANCH-latest.zip
+          aws s3 cp zips/penpot-all-bundles.zip s3://${{ secrets.S3_BUCKET }}/penpot-all-bundles-$COMMIT_HASH.zip
 
       - name: Upload unified 'individual' bundle to S3
         if: ${{ github.event.inputs.zip_mode == 'individual' }}
@@ -103,8 +119,8 @@ jobs:
           AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
         run: |
             for name in penpot-frontend penpot-backend penpot-exporter; do
-              aws s3 cp zips/penpot-all-bundles.zip s3://${{ secrets.S3_BUCKET }}/penpot-${name}-${{ steps.vars.outputs.gh_branch }}-latest.zip
-              aws s3 cp zips/penpot-all-bundles.zip s3://${{ secrets.S3_BUCKET }}/penpot-${name}-${{ steps.vars.outputs.commit_hash }}.zip
+              aws s3 cp zips/penpot-all-bundles.zip s3://${{ secrets.S3_BUCKET }}/penpot-${name}-$GH_BRANCH-latest.zip
+              aws s3 cp zips/penpot-all-bundles.zip s3://${{ secrets.S3_BUCKET }}/penpot-${name}-$COMMIT_HASH.zip
             done
 
       # # Generate presigned S3 URLs
