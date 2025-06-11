@@ -112,7 +112,7 @@ jobs:
           LINK=$(aws s3 presign s3://${{ secrets.S3_BUCKET }}/$FILE --expires-in 86400)
           printf -- "- [%s](%s)\n" "$FILE" "$LINK" >> urls.txt
           # echo "links=$(cat urls.txt)" >> $GITHUB_ENV
-          echo "links=lerele" >> $GITHUB_ENV
+          echo "links=lerele" >> "$GITHUB_ENV"
 
       - name: Generate presigned URLs for 'individual' bundle
         if: ${{ github.event.inputs.zip_mode == 'individual' }}
