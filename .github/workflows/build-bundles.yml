@@ -27,6 +27,10 @@ jobs:
     if: github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch'
     name: Build and Upload Penpot Bundles
     runs-on: ubuntu-24.04
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
 
     steps:
       - name: Checkout repository
@@ -47,33 +51,24 @@ jobs:
       - name: Run manage.sh build-bundle from host
         run: ./manage.sh build-bundle
 
+      - name: Prepare directories for zipping
+        run: |
+          mkdir zips
+          mv bundles penpot
+
       - name: Create zip bundles for zip_mode == 'all'
         if: ${{ github.event.inputs.zip_mode == 'all' }}
         run: |
           echo "📦 Packaging Penpot 'all' bundles..."
-          mkdir zips
-          mv bundles penpot
           zip -r zips/penpot-all-bundles.zip penpot
 
       - name: Create zip bundles for zip_mode == 'individual'
         if: ${{ github.event.inputs.zip_mode == 'individual' }}
         run: |
           echo "📦 Packaging Penpot 'individual' bundles..."
-          mkdir zips
-          zip -r zips/penpot-frontend.zip bundles/frontend
-          zip -r zips/penpot-backend.zip bundles/backend
-          zip -r zips/penpot-exporter.zip bundles/exporter
-
-          # mkdir -p zips temp
-          # for component in frontend backend exporter; do
-          #   name="penpot-${component}"
-          #   mkdir -p temp/${name}
-          #   cp -r bundles/${component}/* temp/${name}/
-          # done
-          # cd temp
-          # for name in penpot-frontend penpot-backend penpot-exporter; do
-          #   zip -r ../zips/${name}.zip ${name}
-          # done
+          zip -r zips/penpot-frontend.zip penpot/frontend
+          zip -r zips/penpot-backend.zip penpot/backend
+          zip -r zips/penpot-exporter.zip penpot/exporter
 
       - name: Upload unified 'all' bundle
         if: ${{ github.event.inputs.zip_mode == 'all' }}
@@ -94,81 +89,67 @@ jobs:
 
       - name: Upload unified 'all' bundle to S3
         if: ${{ github.event.inputs.zip_mode == 'all' }}
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
         run: |
           aws s3 cp zips/penpot-all-bundles.zip s3://${{ secrets.S3_BUCKET }}/penpot-all-bundles-${{ steps.vars.outputs.gh_branch}}.zip
           aws s3 cp zips/penpot-all-bundles.zip s3://${{ secrets.S3_BUCKET }}/penpot-all-bundles-${{ steps.vars.outputs.commit_hash }}.zip
 
       - name: Upload unified 'individual' bundle to S3
         if: ${{ github.event.inputs.zip_mode == 'individual' }}
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
         run: |
             for name in penpot-frontend penpot-backend penpot-exporter; do
               aws s3 cp zips/penpot-all-bundles.zip s3://${{ secrets.S3_BUCKET }}/penpot-${name}-${{ steps.vars.outputs.gh_branch }}-latest.zip
               aws s3 cp zips/penpot-all-bundles.zip s3://${{ secrets.S3_BUCKET }}/penpot-${name}-${{ steps.vars.outputs.commit_hash }}.zip
             done
 
-      # # Generate presigned S3 URLs
-      # - name: Generate presigned URLs
-      #   id: presign
-      #   env:
-      #     AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      #     AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      #     AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
-      #   run: |
-      #     PREFIX=${{ steps.prefix.outputs.prefix }}
-      #     echo "" > urls.txt
-      #     echo "📥 Download links valid for 24h:" >> urls.txt
-      #     if [[ "$ZIP_MODE" == "all" ]]; then
-      #       FILE=penpot-all-bundles-${{ steps.vars.outputs.commit_hash }}.zip
-      #       LINK=$(aws s3 presign s3://${{ secrets.S3_BUCKET }}/$PREFIX/$FILE --expires-in 86400)
-      #       printf -- "- [%s](%s)\n" "$FILE" "$LINK" >> urls.txt
-      #     else
-      #       for name in penpot-frontend penpot-backend penpot-exporter; do
-      #         FILE=$name-${{ steps.vars.outputs.commit_hash }}.zip
-      #         LINK=$(aws s3 presign s3://${{ secrets.S3_BUCKET }}/$PREFIX/$FILE --expires-in 86400)
-      #         printf -- "- [%s](%s)\n" "$FILE" "$LINK" >> urls.txt
-      #       done
+      - name: Prepare urls.txt file
+        run: |
+          echo "" > urls.txt
 
-      # # temporary step
-      # - name: Temporary step to store a urls.txt
-      #   run: |
-      #     printf -- "https://dendarii.es" >> urls.txt
+      - name: Generate presigned URLs for 'all' bundle
+        if: ${{ github.event.inputs.zip_mode == 'all' }}
+        run: |
+          echo "📥 Download links valid for 24h:" >> urls.txt
+          FILE=penpot-all-bundles-${{ steps.vars.outputs.gh_branch}}.zip
+          LINK=$(aws s3 presign s3://${{ secrets.S3_BUCKET }}/$FILE --expires-in 86400)
+          printf -- "- [%s](%s)\n" "$FILE" "$LINK" >> urls.txt
 
-      # - name: Store urls in gh-output
-      #   id: files
-      #   run: echo "links=$(cat urls.txt)" >> $GITHUB_OUTPUT
+      - name: Generate presigned URLs for 'individual' bundle
+        if: ${{ github.event.inputs.zip_mode == 'individual' }}
+        run: |
+          echo "📥 Download links valid for 24h:" >> urls.txt
+          for name in penpot-frontend penpot-backend penpot-exporter; do
+            FILE=penpot-$name-${{ steps.vars.outputs.gh_branch}}.zip
+            LINK=$(aws s3 presign s3://${{ secrets.S3_BUCKET }}/$FILE --expires-in 86400)
+            printf -- "- [%s](%s)\n" "$FILE" "$LINK" >> urls.txt
 
-      # - name: Notify Mattermost about automatic bundles
-      #   if: github.event_name == 'pull_request'
-      #   uses: mattermost/action-mattermost-notify@master
-      #   with:
-      #     MATTERMOST_WEBHOOK_URL: ${{ secrets.MATTERMOST_WEBHOOK }}
-      #     TEXT: |
-      #       📦 *Penpot bundle automatically generated*
-      #       📄 PR: ${{ github.event.pull_request.title }}
-      #       🔁 From: \`${{ github.head_ref }}\` to \`{{ github.base_ref }}\`
-      #       ${{ steps.files.outputs.links }}
+      - name: Store urls in gh-output
+        id: files
+        run: echo "links=$(cat urls.txt)" >> $GITHUB_OUTPUT
 
-      # - name: Notify Mattermost about manual bundles
-      #   if: github.event_name == 'workflow_dispatch'
-      #   uses: mattermost/action-mattermost-notify@master
-      #   with:
-      #     MATTERMOST_WEBHOOK_URL: ${{ secrets.MATTERMOST_WEBHOOK }}
-      #     TEXT: |
-      #       📦 *Penpot bundle manually generated*
-      #       📄 Triggered from branch: `${{ github.ref_name}}`
-      #       ${{ steps.files.outputs.links }}
+      - name: Notify Mattermost about automatic bundles
+        if: github.event_name == 'pull_request'
+        uses: mattermost/action-mattermost-notify@master
+        with:
+          MATTERMOST_WEBHOOK_URL: ${{ secrets.MATTERMOST_WEBHOOK }}
+          TEXT: |
+            📦 *Penpot bundle automatically generated*
+            📄 PR: ${{ github.event.pull_request.title }}
+            🔁 From: \`${{ github.head_ref }}\` to \`{{ github.base_ref }}\`
+            ${{ steps.files.outputs.links }}
+
+      - name: Notify Mattermost about manual bundles
+        if: github.event_name == 'workflow_dispatch'
+        uses: mattermost/action-mattermost-notify@master
+        with:
+          MATTERMOST_WEBHOOK_URL: ${{ secrets.MATTERMOST_WEBHOOK }}
+          TEXT: |
+            📦 *Penpot bundle manually generated*
+            📄 Triggered from branch: `${{ github.ref_name}}`
+            ${{ steps.files.outputs.links }}
 
 
-      # # Print artifact summary in logs
-      # - name: Print artifact summary URL
-      #   run: |
-      #     echo "📦 Artifacts available at:" :)
-      #     echo "🔗 https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+      # Print artifact summary in logs
+      - name: Print artifact summary URL
+        run: |
+          echo "📦 Artifacts available at:" :)
+          echo "🔗 https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
