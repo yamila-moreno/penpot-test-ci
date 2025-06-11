@@ -111,6 +111,7 @@ jobs:
             for name in penpot-frontend penpot-backend penpot-exporter; do
               aws s3 cp zips/penpot-all-bundles.zip s3://${{ secrets.S3_BUCKET }}/penpot-${name}-${{ steps.vars.outputs.gh_branch }}-latest.zip
               aws s3 cp zips/penpot-all-bundles.zip s3://${{ secrets.S3_BUCKET }}/penpot-${name}-${{ steps.vars.outputs.commit_hash }}.zip
+            done
 
       # # Generate presigned S3 URLs
       # - name: Generate presigned URLs
