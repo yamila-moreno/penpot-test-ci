@@ -44,44 +44,35 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # - name: Build Penpot CI Builder Image
-      #   run: |
-      #     docker build \
-      #       --build-arg EXTERNAL_UID=1000 \
-      #       --build-arg EXTERNAL_GID=1000 \
-      #       -t penpotapp/penpot-ci-builder:latest \
-      #       -f docker/devenv/Dockerfile \
-      #       docker/devenv
-
       - name: Run manage.sh build-bundle from host
         run: ./manage.sh build-bundle
 
-      # - name: Create zip bundles for zip_mode == 'all'
-      #   if: ${{ github.event.inputs.zip_mode == 'all' }}
-      #   run: |
-      #     echo "📦 Packaging Penpot bundles..."
-      #     mkdir -p zips temp
-      #     mkdir -p temp/penpot-all/{penpot-frontend,penpot-backend,penpot-exporter}
-      #     cp -r bundles/frontend/* temp/penpot-all/penpot-frontend/
-      #     cp -r bundles/backend/* temp/penpot-all/penpot-backend/
-      #     cp -r bundles/exporter/* temp/penpot-all/penpot-exporter/
-      #     cd temp
-      #     zip -r ../zips/penpot-all-bundles.zip penpot-all
+      - name: Create zip bundles for zip_mode == 'all'
+        if: ${{ github.event.inputs.zip_mode == 'all' }}
+        run: |
+          echo "📦 Packaging Penpot bundles..."
+          mkdir -p zips temp
+          mkdir -p temp/penpot-all/{penpot-frontend,penpot-backend,penpot-exporter}
+          cp -r bundles/frontend/* temp/penpot-all/penpot-frontend/
+          cp -r bundles/backend/* temp/penpot-all/penpot-backend/
+          cp -r bundles/exporter/* temp/penpot-all/penpot-exporter/
+          cd temp
+          zip -r ../zips/penpot-all-bundles.zip penpot-all
 
-      # - name: Create zip bundles for zip_mode == 'individual'
-      #   if: ${{ github.event.inputs.zip_mode == 'individual' }}
-      #   run: |
-      #     echo "📦 Packaging Penpot bundles..."
-      #     mkdir -p zips temp
-      #     for component in frontend backend exporter; do
-      #       name="penpot-${component}"
-      #       mkdir -p temp/${name}
-      #       cp -r bundles/${component}/* temp/${name}/
-      #     done
-      #     cd temp
-      #     for name in penpot-frontend penpot-backend penpot-exporter; do
-      #       zip -r ../zips/${name}.zip ${name}
-      #     done
+      - name: Create zip bundles for zip_mode == 'individual'
+        if: ${{ github.event.inputs.zip_mode == 'individual' }}
+        run: |
+          echo "📦 Packaging Penpot bundles..."
+          mkdir -p zips temp
+          for component in frontend backend exporter; do
+            name="penpot-${component}"
+            mkdir -p temp/${name}
+            cp -r bundles/${component}/* temp/${name}/
+          done
+          cd temp
+          for name in penpot-frontend penpot-backend penpot-exporter; do
+            zip -r ../zips/${name}.zip ${name}
+          done
 
       # - name: Upload unified 'all' bundle
       #   if: ${{ github.event.inputs.zip_mode == 'all' }}
@@ -100,26 +91,26 @@ jobs:
       #       zips/penpot-backend.zip
       #       zips/penpot-exporter.zip
 
-      # - name: Upload unified 'all' bundle to S3
-      #   if: ${{ github.event.inputs.zip_mode == 'all' }}
-      #   env:
-      #     AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      #     AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      #     AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
-      #   run: |
-      #     aws s3 cp zips/penpot-all-bundles.zip s3://${{ secrets.S3_BUCKET }}/penpot-all-bundles-${{ steps.vars.outputs.gh_branch }}-latest.zip
-      #     aws s3 cp zips/penpot-all-bundles.zip s3://${{ secrets.S3_BUCKET }}/penpot-all-bundles-${{ steps.vars.outputs.commit_hash }}.zip
+      - name: Upload unified 'all' bundle to S3
+        if: ${{ github.event.inputs.zip_mode == 'all' }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
+        run: |
+          aws s3 cp zips/penpot-all-bundles.zip s3://${{ secrets.S3_BUCKET }}/penpot-all-bundles-${{ steps.vars.outputs.gh_branch }}-latest.zip
+          aws s3 cp zips/penpot-all-bundles.zip s3://${{ secrets.S3_BUCKET }}/penpot-all-bundles-${{ steps.vars.outputs.commit_hash }}.zip
 
-      # - name: Upload unified 'individual' bundle to S3
-      #   if: ${{ github.event.inputs.zip_mode == 'individual' }}
-      #   env:
-      #     AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      #     AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      #     AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
-      #   run: |
-      #       for name in penpot-frontend penpot-backend penpot-exporter; do
-      #         aws s3 cp zips/penpot-all-bundles.zip s3://${{ secrets.S3_BUCKET }}/penpot-${name}-${{ steps.vars.outputs.gh_branch }}-latest.zip
-      #         aws s3 cp zips/penpot-all-bundles.zip s3://${{ secrets.S3_BUCKET }}/penpot-${name}-${{ steps.vars.outputs.commit_hash }}.zip
+      - name: Upload unified 'individual' bundle to S3
+        if: ${{ github.event.inputs.zip_mode == 'individual' }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
+        run: |
+            for name in penpot-frontend penpot-backend penpot-exporter; do
+              aws s3 cp zips/penpot-all-bundles.zip s3://${{ secrets.S3_BUCKET }}/penpot-${name}-${{ steps.vars.outputs.gh_branch }}-latest.zip
+              aws s3 cp zips/penpot-all-bundles.zip s3://${{ secrets.S3_BUCKET }}/penpot-${name}-${{ steps.vars.outputs.commit_hash }}.zip
 
       # # Generate presigned S3 URLs
       # - name: Generate presigned URLs
