@@ -52,14 +52,8 @@ jobs:
         run: |
           echo "📦 Packaging Penpot 'all' bundles..."
           mkdir zips
-          zip -r zips/penpot-all-bundles.zip bundles
-          # mkdir -p zips temp
-          # mkdir -p temp/penpot-all/{penpot-frontend,penpot-backend,penpot-exporter}
-          # cp -r bundles/frontend/* temp/penpot-all/penpot-frontend/
-          # cp -r bundles/backend/* temp/penpot-all/penpot-backend/
-          # cp -r bundles/exporter/* temp/penpot-all/penpot-exporter/
-          # cd temp
-          # zip -r ../zips/penpot-all-bundles.zip penpot-all
+          mv bundles penpot
+          zip -r zips/penpot-all-bundles.zip penpot
 
       - name: Create zip bundles for zip_mode == 'individual'
         if: ${{ github.event.inputs.zip_mode == 'individual' }}
