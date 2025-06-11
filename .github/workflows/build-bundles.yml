@@ -118,13 +118,16 @@ jobs:
         if: ${{ github.event.inputs.zip_mode == 'individual' }}
         run: |
           echo "📥 Download links valid for 24h:" >> urls.txt
+          echo $(cat urls.txt)
           for name in penpot-frontend penpot-backend penpot-exporter; do
             FILE=penpot-$name-${{ steps.vars.outputs.gh_branch}}.zip
             LINK=$(aws s3 presign s3://${{ secrets.S3_BUCKET }}/$FILE --expires-in 86400)
             printf -- "- [%s](%s)\n" "$FILE" "$LINK" >> urls.txt
+            echo $(cat urls.txt)
           done
+          echo $(cat urls.txt)
           # echo "links=$(cat urls.txt)" >> $GITHUB_ENV
-          echo "links=lerele" >> $GITHUB_ENV
+          echo "links=lerele" >> "$GITHUB_ENV"
 
       - name: Notify Mattermost about automatic bundles
         if: github.event_name == 'pull_request'
@@ -149,5 +152,5 @@ jobs:
 
       - name: Print artifact summary URL
         run: |
-          echo "📦 Artifacts available at:" :)
+          echo "📦 Artifacts available at:"
           echo "🔗 https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
