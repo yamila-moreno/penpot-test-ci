@@ -44,14 +44,14 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # - name: Build Penpot CI Builder Image
-      #   run: |
-      #     docker build \
-      #       --build-arg EXTERNAL_UID=1000 \
-      #       --build-arg EXTERNAL_GID=1000 \
-      #       -t penpotapp/penpot-ci-builder:latest \
-      #       -f docker/devenv/Dockerfile \
-      #       docker/devenv
+      - name: Build Penpot CI Builder Image
+        run: |
+          docker build \
+            --build-arg EXTERNAL_UID=1000 \
+            --build-arg EXTERNAL_GID=1000 \
+            -t penpotapp/penpot-ci-builder:latest \
+            -f docker/devenv/Dockerfile \
+            docker/devenv
 
       - name: Run manage.sh build-bundle from host
         run: ./manage.sh build-bundle
@@ -174,8 +174,8 @@ jobs:
       #       ${{ steps.files.outputs.links }}
 
 
-      # Print artifact summary in logs
-      - name: Print artifact summary URL
-        run: |
-          echo "📦 Artifacts available at:" :)
-          echo "🔗 https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+      # # Print artifact summary in logs
+      # - name: Print artifact summary URL
+      #   run: |
+      #     echo "📦 Artifacts available at:" :)
+      #     echo "🔗 https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
