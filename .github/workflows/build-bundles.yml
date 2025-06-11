@@ -74,22 +74,22 @@ jobs:
             zip -r ../zips/${name}.zip ${name}
           done
 
-      # - name: Upload unified 'all' bundle
-      #   if: ${{ github.event.inputs.zip_mode == 'all' }}
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: penpot-all-bundles
-      #     path: zips/penpot-all-bundles.zip
+      - name: Upload unified 'all' bundle
+        if: ${{ github.event.inputs.zip_mode == 'all' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: penpot-all-bundles
+          path: zips/penpot-all-bundles.zip
 
-      # - name: Upload individual bundles
-      #   if: ${{ github.event.inputs.zip_mode == 'individual' }}
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: penpot-individual-bundles
-      #     path: |
-      #       zips/penpot-frontend.zip
-      #       zips/penpot-backend.zip
-      #       zips/penpot-exporter.zip
+      - name: Upload individual bundles
+        if: ${{ github.event.inputs.zip_mode == 'individual' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: penpot-individual-bundles
+          path: |
+            zips/penpot-frontend.zip
+            zips/penpot-backend.zip
+            zips/penpot-exporter.zip
 
       - name: Upload unified 'all' bundle to S3
         if: ${{ github.event.inputs.zip_mode == 'all' }}
