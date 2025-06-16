@@ -108,26 +108,26 @@ jobs:
         if: ${{ github.event.inputs.zip_mode == 'all' }}
         id: presigned-all
         run: |
-          echo "📥 Download links valid for 24h:" >> urls.txt
           FILE=penpot-all-bundles-${{ steps.vars.outputs.gh_branch}}.zip
           LINK=$(aws s3 presign s3://${{ secrets.S3_BUCKET }}/$FILE --expires-in 86400)
           printf -- "- [%s](%s)\n" "$FILE" "$LINK" >> urls.txt
-          # echo "links=$(cat urls.txt)" >> $GITHUB_OUTPUT
-          LINKS=$(cat urls.txt)
-          echo "links=$LINKS" >> $GITHUB_OUTPUT
+          cat urls.txt
+          echo "links=$(cat urls.txt)" >> $GITHUB_OUTPUT
+          # LINKS=$(cat urls.txt)
+          # echo "links=$LINKS" >> $GITHUB_OUTPUT
 
       - name: Generate presigned URLs for 'individual' bundle
         if: ${{ github.event.inputs.zip_mode == 'individual' }}
         id: presigned-individual
         run: |
-          echo "📥 Download links valid for 24h:" >> urls.txt
           for name in penpot-frontend penpot-backend penpot-exporter; do
             FILE=penpot-$name-${{ steps.vars.outputs.gh_branch}}.zip
             LINK=$(aws s3 presign s3://${{ secrets.S3_BUCKET }}/$FILE --expires-in 86400)
             printf -- "- [%s](%s)\n" "$FILE" "$LINK" >> urls.txt
           done
-          LINKS=$(cat urls.txt)
-          echo "links=$LINKS" >> $GITHUB_OUTPUT
+          cat urls.txt
+          # LINKS=$(cat urls.txt)
+          # echo "links=$LINKS" >> $GITHUB_OUTPUT
 
       - name: Notify Mattermost about automatic bundles
         if: github.event_name == 'pull_request'
@@ -138,6 +138,7 @@ jobs:
             📦 *Penpot bundle automatically generated*
             📄 PR: ${{ github.event.pull_request.title }}
             🔁 From: \`${{ github.head_ref }}\` to \`{{ github.base_ref }}\`
+            📥 Download links valid for 24h:
             ${{ steps.presigned-all.outputs.links }}
 
       - name: Notify Mattermost about manual bundles
@@ -148,6 +149,7 @@ jobs:
           TEXT: |
             📦 *Penpot bundle manually generated*
             📄 Triggered from branch: `${{ github.ref_name}}`
+            📥 Download links valid for 24h:
             ${{ steps.presigned-all.outputs.links }}
 
       - name: Print artifact summary URL
