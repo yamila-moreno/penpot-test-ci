@@ -140,14 +140,12 @@ jobs:
       - name: Notify Mattermost about manual bundles
         if: github.event_name == 'workflow_dispatch'
         uses: mattermost/action-mattermost-notify@master
-        env:
-          LINKS: $(cat urls.txt)
         with:
           MATTERMOST_WEBHOOK_URL: ${{ secrets.MATTERMOST_WEBHOOK }}
           TEXT: |
             📦 *Penpot bundle manually generated*
             📄 Triggered from branch: `${{ github.ref_name}}`
-            $LINKS
+            {{ steps.presigned-all.outputs.links }}
 
       - name: Print artifact summary URL
         run: |
