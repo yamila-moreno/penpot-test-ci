@@ -97,8 +97,8 @@ jobs:
         if: ${{ github.event.inputs.zip_mode == 'individual' }}
         run: |
             for name in penpot-frontend penpot-backend penpot-exporter; do
-              aws s3 cp zips/${name}.zip s3://${{ secrets.S3_BUCKET }}/penpot-${name}-${{ steps.vars.outputs.gh_branch }}-latest.zip
-              aws s3 cp zips/${name}.zip s3://${{ secrets.S3_BUCKET }}/penpot-${name}-${{ steps.vars.outputs.commit_hash }}.zip
+              aws s3 cp zips/${name}.zip s3://${{ secrets.S3_BUCKET }}/${name}-${{ steps.vars.outputs.gh_branch }}-latest.zip
+              aws s3 cp zips/${name}.zip s3://${{ secrets.S3_BUCKET }}/${name}-${{ steps.vars.outputs.commit_hash }}.zip
             done
 
       - name: Notify Mattermost about automatic bundles
