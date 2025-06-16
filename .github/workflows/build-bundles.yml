@@ -113,7 +113,8 @@ jobs:
           LINK=$(aws s3 presign s3://${{ secrets.S3_BUCKET }}/$FILE --expires-in 86400)
           printf -- "- [%s](%s)\n" "$FILE" "$LINK" >> urls.txt
           # echo "links=$(cat urls.txt)" >> $GITHUB_OUTPUT
-          echo "links=lerele" >> $GITHUB_OUTPUT
+          LINKS=$(cat urls.txt)
+          echo "links=$LINKS" >> $GITHUB_OUTPUT
 
       - name: Generate presigned URLs for 'individual' bundle
         if: ${{ github.event.inputs.zip_mode == 'individual' }}
@@ -125,7 +126,8 @@ jobs:
             LINK=$(aws s3 presign s3://${{ secrets.S3_BUCKET }}/$FILE --expires-in 86400)
             printf -- "- [%s](%s)\n" "$FILE" "$LINK" >> urls.txt
           done
-          echo "links=$(cat urls.txt)" >> $GITHUB_OUTPUT
+          LINKS=$(cat urls.txt)
+          echo "links=$LINKS" >> $GITHUB_OUTPUT
 
       - name: Notify Mattermost about automatic bundles
         if: github.event_name == 'pull_request'
