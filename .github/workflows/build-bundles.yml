@@ -136,7 +136,7 @@ jobs:
             📦 *Penpot bundle automatically generated*
             📄 PR: ${{ github.event.pull_request.title }}
             🔁 From: \`${{ github.head_ref }}\` to \`{{ github.base_ref }}\`
-            {{ steps.presigned-all.outputs.links }}
+            ${{ steps.presigned-all.outputs.links }}
 
       - name: Notify Mattermost about manual bundles
         if: github.event_name == 'workflow_dispatch'
@@ -146,7 +146,7 @@ jobs:
           TEXT: |
             📦 *Penpot bundle manually generated*
             📄 Triggered from branch: `${{ github.ref_name}}`
-            {{ steps.presigned-all.outputs.links }}
+            ${{ steps.presigned-all.outputs.links }}
 
       - name: Print artifact summary URL
         run: |
