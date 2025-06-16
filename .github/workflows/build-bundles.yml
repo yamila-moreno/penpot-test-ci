@@ -106,16 +106,17 @@ jobs:
 
       - name: Generate presigned URLs for 'all' bundle
         if: ${{ github.event.inputs.zip_mode == 'all' }}
+        id: presigned-all
         run: |
           echo "📥 Download links valid for 24h:" >> urls.txt
           FILE=penpot-all-bundles-${{ steps.vars.outputs.gh_branch}}.zip
           LINK=$(aws s3 presign s3://${{ secrets.S3_BUCKET }}/$FILE --expires-in 86400)
           printf -- "- [%s](%s)\n" "$FILE" "$LINK" >> urls.txt
-          # echo "links=$(cat urls.txt)" >> $GITHUB_ENV
-          # echo "links=lerele" >> "$GITHUB_ENV"
+          echo "links=$(cat urls.txt)" >> $GITHUB_OUTPUT
 
       - name: Generate presigned URLs for 'individual' bundle
         if: ${{ github.event.inputs.zip_mode == 'individual' }}
+        id: presigned-individual
         run: |
           echo "📥 Download links valid for 24h:" >> urls.txt
           for name in penpot-frontend penpot-backend penpot-exporter; do
@@ -123,21 +124,18 @@ jobs:
             LINK=$(aws s3 presign s3://${{ secrets.S3_BUCKET }}/$FILE --expires-in 86400)
             printf -- "- [%s](%s)\n" "$FILE" "$LINK" >> urls.txt
           done
-          # echo "links=$(cat urls.txt)" >> $GITHUB_ENV
-          # echo "links=lerele" >> "$GITHUB_ENV"
+          echo "links=$(cat urls.txt)" >> $GITHUB_OUTPUT
 
       - name: Notify Mattermost about automatic bundles
         if: github.event_name == 'pull_request'
         uses: mattermost/action-mattermost-notify@master
-        env:
-          LINKS: $(cat urls.txt)
         with:
           MATTERMOST_WEBHOOK_URL: ${{ secrets.MATTERMOST_WEBHOOK }}
           TEXT: |
             📦 *Penpot bundle automatically generated*
             📄 PR: ${{ github.event.pull_request.title }}
             🔁 From: \`${{ github.head_ref }}\` to \`{{ github.base_ref }}\`
-            $LINKS
+            {{ steps.presigned-individual.outputs.links }}
 
       - name: Notify Mattermost about manual bundles
         if: github.event_name == 'workflow_dispatch'
